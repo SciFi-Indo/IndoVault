@@ -1,0 +1,10 @@
+# Ignore Python bytecode files
+__pycache__/
+*.pyc
+
+# Ignore IDE configurations (for PyCharm)
+.idea/
+
+# Ignore media files (optional, if you don't want to track them)
+*.jpeg
+*.jpg
