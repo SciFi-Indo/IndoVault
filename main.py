@@ -4,6 +4,108 @@ import crypto_data
 import functions
 import time
 from PIL import Image, ImageTk
+from functions import brighten_color
+
+# Set up the GUI window
+root = tk.Tk()
+root.title("IndoVault - Cryptocurrency Tracker")
+root.configure(bg="black")
+root.attributes('-fullscreen', True)
+
+# Styling and padding values with hex color codes
+header_style = {"font": ("Arial", 20, "bold"), "fill": "white"}
+label_style = {"font": ("Arial", 16, "bold"), "fg": "#800080", "bg": "black"}  # purple -> #800080
+price_style = {"font": ("Arial", 16, "bold"), "fg": "#00FF00", "bg": "black"}  # Green for coin prices
+amount_style = {"font": ("Arial", 16), "fg": "#008000", "bg": "black"}  # green -> #008000
+balance_style = {"font": ("Arial", 16), "fg": "#800080", "bg": "black"}  # purple -> #800080
+invested_style = {"font": ("Arial", 16), "fg": "#800080", "bg": "black"}  # purple -> #800080
+profit_style = {"font": ("Arial", 16), "fg": "#008000", "bg": "black"}  # green -> #008000
+break_even_style = {"font": ("Arial", 16), "fg": "#ffff00", "bg": "black"}  # yellow -> #ffff00
+
+# Apply the brighten_color function with a higher factor for the green styles
+label_style["fg"] = brighten_color(label_style["fg"], factor=1.5)
+price_style["fg"] = brighten_color(price_style["fg"], factor=2.5)
+amount_style["fg"] = brighten_color(amount_style["fg"], factor=2.0)  # Brighter green
+balance_style["fg"] = brighten_color(balance_style["fg"], factor=2.5)
+invested_style["fg"] = brighten_color(invested_style["fg"], factor=2.5)
+profit_style["fg"] = brighten_color(profit_style["fg"], factor=2.0)  # Brighter green
+break_even_style["fg"] = brighten_color(break_even_style["fg"], factor=1.5)
+
+# Create headers after root setup to ensure proper display
+def create_headers():
+    header_coins = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
+    header_coins.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
+    header_coins.create_text(100, 30, text="COINS", **header_style)
+    header_coins.grid(row=2, column=0, padx=10, pady=(10, 5))
+
+    header_price = tk.Canvas(root, width=180, height=60, bg="black", bd=0, highlightthickness=0)
+    header_price.create_oval(5, 5, 175, 55, fill="blue", outline="blue", width=0)
+    header_price.create_text(90, 30, text="PRICE", **header_style)
+    header_price.grid(row=2, column=2, padx=10, pady=(10, 5))
+
+    header_holdings = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
+    header_holdings.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
+    header_holdings.create_text(100, 30, text="HOLDINGS", **header_style)
+    header_holdings.grid(row=2, column=12, padx=10, pady=(10, 5))  # Swap columns (12 -> 4)
+
+    header_balance = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
+    header_balance.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
+    header_balance.create_text(100, 30, text="BALANCE", **header_style)
+    header_balance.grid(row=2, column=6, padx=10, pady=(10, 5))
+
+    header_invested = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
+    header_invested.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
+    header_invested.create_text(100, 30, text="INVESTED", **header_style)
+    header_invested.grid(row=2, column=8, padx=10, pady=(10, 5))
+
+    header_profit = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
+    header_profit.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
+    header_profit.create_text(100, 30, text="PROFIT", **header_style)
+    header_profit.grid(row=2, column=10, padx=10, pady=(10, 5))
+
+    header_break_even = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
+    header_break_even.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
+    header_break_even.create_text(100, 30, text="BREAK EVEN", **header_style)
+    header_break_even.grid(row=2, column=4, padx=10, pady=(10, 5))
+
+    header_wallet = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
+    header_wallet.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
+    header_wallet.create_text(100, 30, text="WALLET", **header_style)
+    header_wallet.grid(row=2, column=18, padx=10, pady=(10, 5), sticky="e")
+
+# Initialize the net_value_box globally
+net_value_box = None
+
+# Function to create value boxes
+def create_value_boxes():
+    global net_value_box
+
+    # Create net_value_box
+    net_value_box = tk.Canvas(root, width=220, height=90, bg="black", bd=0, highlightthickness=0)
+    net_value_box.create_oval(10, 10, 210, 80, fill="darkblue", outline="darkblue", width=0)
+    net_value_box.create_text(110, 30, text="NET VALUE", font=("Arial", 14, "bold"), fill="white", justify="center")
+    net_value_box.create_text(110, 60, text="$0.00", font=("Arial", 18, "bold"), fill="green", justify="center")
+    net_value_box.grid(row=len(crypto_data.coins) + 3, column=0, columnspan=5, pady=20)
+
+    # Create deposited_box
+    deposited_box = tk.Canvas(root, width=220, height=90, bg="black", bd=0, highlightthickness=0)
+    deposited_box.create_oval(10, 10, 210, 80, fill="darkblue", outline="darkblue", width=0)
+    deposited_box.create_text(110, 30, text="DEPOSITED", font=("Arial", 14, "bold"), fill="white", justify="center")
+    deposited_box.create_text(110, 60, text="$9160", font=("Arial", 18, "bold"), fill="red", justify="center")
+    deposited_box.grid(row=len(crypto_data.coins) + 3, column=12, columnspan=2, padx=10, pady=20)
+
+# Function to set up the exit button
+def setup_exit_button():
+    # Exit Button Setup
+    exit_button = tk.Button(root, text="Exit", command=root.quit, font=("Arial", 20, "bold"), bg="red", fg="white",
+                            relief="solid")
+
+    # Hover effect (inline)
+    exit_button.bind("<Enter>", lambda e: exit_button.config(bg="darkred"))
+    exit_button.bind("<Leave>", lambda e: exit_button.config(bg="red"))
+
+    # Place the button
+    exit_button.grid(row=len(crypto_data.coins) + 3, column=5, columnspan=5, padx=10, pady=20)
 
 # Flag to check if CoinGecko prices have been fetched
 coin_gecko_prices_fetched = False
@@ -27,7 +129,8 @@ def get_price(coin, retries=7):
         if 'price' in response_data:
             price = str(float(response_data["price"]))
             if price != "0":  # If price is valid, update the label
-                crypto_data.price_labels[coin].config(text=f"${price}", fg="green")
+                brightened_color = brighten_color("#008000", factor=2.5)  # Brighten the green color
+                crypto_data.price_labels[coin].config(text=f"${price}", fg=brightened_color)
                 update_balance_for_coin(coin, price)  # Update balance after price
                 update_profit_for_coin(coin, price)  # Update profit after price
                 update_break_even_price_for_coin(coin)  # Update break-even price
@@ -44,13 +147,8 @@ def update_prices(idx=0):
         if not sorted_once:
             # Directly call sort_prices without lambda
             functions.sort_prices(
-                prices_dict,
-                functions.load_and_update_icon,  # Correct reference to the function
-                update_wallet_label_for_coin,
-                functions.load_and_update_icon,
-                update_net_value,
-                root,
-                label_style
+                prices_dict, functions.load_and_update_icon, update_wallet_label_for_coin,
+                update_net_value, root, label_style
             )
 
         root.after(300000, update_prices)  # Ensure it keeps updating every minute
@@ -64,9 +162,11 @@ def update_prices(idx=0):
     root.after(300, update_price_for_coin, coin, price, idx)
     time.sleep(0.1)  # Add a small delay to spread out the load
 
-# Function to update the price, balance, and change the text color to green
+# Function to update the price for each coin in the GUI (one by one with delay)
 def update_price_for_coin(coin, price, idx):
-    crypto_data.price_labels[coin].config(text=f"${price}", fg="green")
+    # Brighten the green color only for the price label
+    brightened_green = brighten_color(price_style["fg"], factor=2.5)  # Brighten the green color
+    crypto_data.price_labels[coin].config(text=f"${price}", fg=brightened_green)  # Apply the brightened color to price
     update_balance_for_coin(coin, price)  # Update balance after price
     update_profit_for_coin(coin, price)  # Update profit after price
     update_break_even_price_for_coin(coin)  # Update break-even price
@@ -94,9 +194,12 @@ def update_profit_for_coin(coin, price):
     profit = balance - crypto_data.invested[coin]
     # Profit in green if positive, red if negative, bold green if positive
     if profit >= 0:
-        crypto_data.profit_labels[coin].config(text=f"${profit:.2f}", fg="green", font=("Arial", 16, "bold"))
+        brightened_color = brighten_color("#008000", factor=2.0)  # Brighter green for gain
+        crypto_data.profit_labels[coin].config(text=f"${profit:.2f}", fg=brightened_color, font=("Arial", 16, "bold"))
     else:
-        crypto_data.profit_labels[coin].config(text=f"${profit:.2f}", fg="red", font=("Arial", 16))
+        brightened_color = brighten_color("#ff0000", factor=1.5)  # Brighter red for loss
+        crypto_data.profit_labels[coin].config(text=f"${profit:.2f}", fg=brightened_color, font=("Arial", 16))
+
 
 # Function to calculate break even price
 def calculate_break_even(coin):
@@ -115,19 +218,17 @@ def update_break_even_price_for_coin(coin):
         break_even_price_formatted = f"{break_even_price:.5f}"
 
         if float(current_price) >= break_even_price:
-            crypto_data.break_even_labels[coin].config(text=f"${break_even_price_formatted}",
-                                           fg="green")  # Green if above or equal to break-even
+            brightened_color = brighten_color("#008000", factor=2.5)  # Brighter green
+            crypto_data.break_even_labels[coin].config(text=f"${break_even_price_formatted}", fg=brightened_color)
         else:
-            crypto_data.break_even_labels[coin].config(text=f"${break_even_price_formatted}", fg="red")
+            brightened_color = brighten_color("#ff0000", factor=2.5)  # Brighter red
+            crypto_data.break_even_labels[coin].config(text=f"${break_even_price_formatted}", fg=brightened_color)
+
     else:
         # Display 5 decimal places for break-even price when current price is not available
         break_even_price_formatted = f"{break_even_price:.5f}"
         crypto_data.break_even_labels[coin].config(text=f"${break_even_price_formatted}",
                                        fg="yellow")  # Default color (yellow) if price is not available
-
-# Function to exit the program
-def exit_program(event=None):
-    root.quit()
 
 # Update the net value box
 def update_net_value():
@@ -147,12 +248,6 @@ def update_net_value():
     net_value_box.create_text(105, 60, text=f"${actual_net_value:.2f}", font=("Arial", 18, "bold"), fill=text_color,
                               justify="center")
 
-# Set up the GUI window
-root = tk.Tk()
-root.title("IndoVault - Cryptocurrency Tracker")
-root.configure(bg="black")
-root.attributes('-fullscreen', True)
-
 
 # Call the function to fetch prices for the excluded coins when the program starts
 functions.fetch_excluded_coin_prices(prices_dict, root)
@@ -167,10 +262,11 @@ for idx, coin in enumerate(crypto_data.coins):
     wallet_name = crypto_data.wallet_mapping.get(coin, "NA")
 
     if coin not in crypto_data.wallet_labels:
-        crypto_data.wallet_labels[coin] = tk.Label(root, text=wallet_name, font=("Arial", 16), fg="black", bg="lightgray")
+        crypto_data.wallet_labels[coin] = tk.Label(root, text=wallet_name, font=("Arial", 16, "bold"), fg="black",
+                                                   bg="lightgray")
 
     crypto_data.wallet_labels[coin].grid_forget()  # Reset grid position
-    crypto_data.wallet_labels[coin].grid(row=idx + 3, column=16, padx=10, pady=4, sticky="e")
+    crypto_data.wallet_labels[coin].grid(row=idx + 3, column=18, padx=10, pady=4)
 
 # Updating wallet label color and group
 def update_wallet_label_for_coin(coin):
@@ -178,106 +274,30 @@ def update_wallet_label_for_coin(coin):
     wallet_color = crypto_data.wallet_group_colors.get(wallet_group, "white")  # Default to white if group is not found
     crypto_data.wallet_labels[coin].config(text=wallet_group, fg="black", bg=wallet_color)
 
-# Styling and padding values
-header_style = {"font": ("Arial", 20, "bold"), "fill": "white"}
-label_style = {"font": ("Arial", 16, "bold"), "fg": "purple", "bg": "black"}
-price_style = {"font": ("Arial", 16, "bold"), "fg": "red", "bg": "black"}
-amount_style = {"font": ("Arial", 16), "fg": "green", "bg": "black"}
-balance_style = {"font": ("Arial", 16), "fg": "purple", "bg": "black"}
-invested_style = {"font": ("Arial", 16), "fg": "purple", "bg": "black"}
-profit_style = {"font": ("Arial", 16), "fg": "green", "bg": "black"}
-break_even_style = {"font": ("Arial", 16), "fg": "yellow", "bg": "black"}
-
 # Foreground image setup (image will be on top of the grid but transparent)
 image_path = r"C:\Users\lette\PycharmProjects\IndoVault\DSC00188.jpeg"
 image = Image.open(image_path)
 
+# Convert to RGBA if the image is not in that mode
 if image.mode != "RGBA":
     image = image.convert("RGBA")
 
+# Create the label to hold the image
+background_label = tk.Label(root)
+background_label.place(x=0, y=0, relwidth=1, relheight=1)
+background_label.lift()
+
+# Resize the image and update the label
 def resize_image():
-    window_width = root.winfo_width()
-    window_height = root.winfo_height()
+    window_width, window_height = root.winfo_width(), root.winfo_height()
     image_resized = image.resize((window_width, window_height), Image.Resampling.LANCZOS)
     background_photo = ImageTk.PhotoImage(image_resized)
     background_label.config(image=background_photo)
     background_label.image = background_photo
 
-# Create a Label to hold the image and place it in the window (foreground layer)
-background_label = tk.Label(root)
-background_label.place(x=0, y=0, relwidth=1, relheight=1)
-background_label.lift()
+# Trigger layout update and resize the image
 root.update_idletasks()
-root.after(100, resize_image)
-
-# Create headers for each column with rounded blue boxes and white text
-header_coins = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
-header_coins.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
-header_coins.create_text(100, 30, text="COINS", **header_style)
-header_coins.grid(row=2, column=0, padx=10, pady=(10, 5))
-
-header_price = tk.Canvas(root, width=180, height=60, bg="black", bd=0, highlightthickness=0)
-header_price.create_oval(5, 5, 175, 55, fill="blue", outline="blue", width=0)
-header_price.create_text(90, 30, text="PRICE", **header_style)
-header_price.grid(row=2, column=2, padx=10, pady=(10, 5))
-
-header_holdings = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
-header_holdings.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
-header_holdings.create_text(100, 30, text="HOLDINGS", **header_style)
-header_holdings.grid(row=2, column=12, padx=10, pady=(10, 5))  # Swap columns (12 -> 4)
-
-header_balance = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
-header_balance.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
-header_balance.create_text(100, 30, text="BALANCE", **header_style)
-header_balance.grid(row=2, column=6, padx=10, pady=(10, 5))
-
-header_invested = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
-header_invested.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
-header_invested.create_text(100, 30, text="INVESTED", **header_style)
-header_invested.grid(row=2, column=8, padx=10, pady=(10, 5))
-
-header_profit = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
-header_profit.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
-header_profit.create_text(100, 30, text="PROFIT", **header_style)
-header_profit.grid(row=2, column=10, padx=10, pady=(10, 5))
-
-header_break_even = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
-header_break_even.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
-header_break_even.create_text(100, 30, text="BREAK EVEN", **header_style)
-header_break_even.grid(row=2, column=4, padx=10, pady=(10, 5))  # Swap columns (4 -> 12)
-
-# Create the wallet header and move it to the farthest right column
-header_wallet = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
-header_wallet.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
-header_wallet.create_text(100, 30, text="WALLET", **header_style)
-header_wallet.grid(row=2, column=16, padx=10, pady=(10, 5), sticky="e")  # Place in column 16 (farthest right)
-
-# Adjusted net_value_box to fix large black box issue
-net_value_box = tk.Canvas(root, width=220, height=90, bg="black", bd=0, highlightthickness=0)
-net_value_box.create_oval(10, 10, 210, 80, fill="darkblue", outline="darkblue", width=0)
-net_value_box.create_text(110, 30, text="NET VALUE", font=("Arial", 14, "bold"), fill="white", justify="center")
-net_value_box.create_text(110, 60, text="$0.00", font=("Arial", 18, "bold"), fill="green", justify="center")
-net_value_box.grid(row=len(crypto_data.coins) + 3, column=0, columnspan=5, pady=20)
-
-# Adjusted deposited_box to fix large black box issue
-deposited_box = tk.Canvas(root, width=220, height=90, bg="black", bd=0, highlightthickness=0)
-deposited_box.create_oval(10, 10, 210, 80, fill="darkblue", outline="darkblue", width=0)
-deposited_box.create_text(110, 30, text="DEPOSITED", font=("Arial", 14, "bold"), fill="white", justify="center")
-deposited_box.create_text(110, 60, text="$9160", font=("Arial", 18, "bold"), fill="red", justify="center")
-deposited_box.grid(row=len(crypto_data.coins) + 3, column=12, columnspan=2, padx=10, pady=20)
-
-exit_button = tk.Button(root, text="Exit", command=exit_program, font=("Arial", 20, "bold"), bg="red", fg="white", relief="solid")
-exit_button.grid(row=len(crypto_data.coins) + 3, column=5, columnspan=5, padx=10, pady=20)
-
-# Hover effect for "Exit" button
-def on_enter(e):
-    exit_button.config(bg="darkred")
-
-def on_leave(e):
-    exit_button.config(bg="red")
-
-exit_button.bind("<Enter>", on_enter)
-exit_button.bind("<Leave>", on_leave)
+resize_image()
 
 # Create labels for each coin and position them in a grid
 for idx, coin in enumerate(crypto_data.coins):
@@ -309,8 +329,8 @@ for idx, coin in enumerate(crypto_data.coins):
 
     # Initialize wallet label unconditionally (along with the other labels)
     wallet_name = crypto_data.wallet_mapping.get(coin, "NA")
-    crypto_data.wallet_labels[coin] = tk.Label(root, text=wallet_name, font=("Arial", 16), fg="black", bg="red")
-    crypto_data.wallet_labels[coin].grid(row=idx + 3, column=16, padx=10, pady=4, sticky="e")
+    crypto_data.wallet_labels[coin] = tk.Label(root, text=wallet_name, font=("Arial", 16, "bold"), fg="black", bg="red")
+    crypto_data.wallet_labels[coin].grid(row=idx + 3, column=18, padx=10, pady=4)
 
 
     # Adjust the coin name to match the lowercase icon filename
@@ -329,8 +349,13 @@ for idx, coin in enumerate(crypto_data.coins):
     # Update the wallet label based on the wallet group color
     update_wallet_label_for_coin(coin)  # This will update the color and text for each wallet label
 
-
+# Call the function to create the boxes
+create_value_boxes()
+# Call the header creation function
+create_headers()
 # Start the price updates and layout adjustments
 update_prices()
+# Call the function to set up the exit button
+setup_exit_button()
 
 root.mainloop()
