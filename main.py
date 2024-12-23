@@ -1,10 +1,12 @@
-import tkinter as tk
+# Standard Library Imports
+import time
 import requests
+# Third-Party Imports
+import tkinter as tk
+from PIL import Image, ImageTk
+# Local Imports
 import crypto_data
 import functions
-import time
-from PIL import Image, ImageTk
-from functions import brighten_color
 
 # Set up the GUI window
 root = tk.Tk()
@@ -21,15 +23,14 @@ balance_style = {"font": ("Arial", 16), "fg": "#800080", "bg": "black"}  # purpl
 invested_style = {"font": ("Arial", 16), "fg": "#800080", "bg": "black"}  # purple -> #800080
 profit_style = {"font": ("Arial", 16), "fg": "#008000", "bg": "black"}  # green -> #008000
 break_even_style = {"font": ("Arial", 16), "fg": "#ffff00", "bg": "black"}  # yellow -> #ffff00
-
 # Apply the brighten_color function with a higher factor for the green styles
-label_style["fg"] = brighten_color(label_style["fg"], factor=1.5)
-price_style["fg"] = brighten_color(price_style["fg"], factor=2.5)
-amount_style["fg"] = brighten_color(amount_style["fg"], factor=2.0)  # Brighter green
-balance_style["fg"] = brighten_color(balance_style["fg"], factor=2.5)
-invested_style["fg"] = brighten_color(invested_style["fg"], factor=2.5)
-profit_style["fg"] = brighten_color(profit_style["fg"], factor=2.0)  # Brighter green
-break_even_style["fg"] = brighten_color(break_even_style["fg"], factor=1.5)
+label_style["fg"] = functions.brighten_color(label_style["fg"], factor=1.5)
+price_style["fg"] = functions.brighten_color(price_style["fg"], factor=2.5)
+amount_style["fg"] = functions.brighten_color(amount_style["fg"], factor=2.0)  # Brighter green
+balance_style["fg"] = functions.brighten_color(balance_style["fg"], factor=2.5)
+invested_style["fg"] = functions.brighten_color(invested_style["fg"], factor=2.5)
+profit_style["fg"] = functions.brighten_color(profit_style["fg"], factor=2.0)  # Brighter green
+break_even_style["fg"] = functions.brighten_color(break_even_style["fg"], factor=1.5)
 
 # Create headers after root setup to ensure proper display
 def create_headers():
@@ -107,6 +108,82 @@ def setup_exit_button():
     # Place the button
     exit_button.grid(row=len(crypto_data.coins) + 3, column=5, columnspan=5, padx=10, pady=20)
 
+# Foreground image setup (image will be on top of the grid but transparent)
+image_path = r"C:\Users\lette\PycharmProjects\IndoVault\DSC00188.jpeg"
+image = Image.open(image_path)
+
+# Convert to RGBA if the image is not in that mode
+if image.mode != "RGBA":
+    image = image.convert("RGBA")
+
+# Create the label to hold the image
+background_label = tk.Label(root)
+background_label.place(x=0, y=0, relwidth=1, relheight=1)
+background_label.lift()
+
+# Resize the image and update the label
+def resize_image():
+    window_width, window_height = root.winfo_width(), root.winfo_height()
+    image_resized = image.resize((window_width, window_height), Image.Resampling.LANCZOS)
+    background_photo = ImageTk.PhotoImage(image_resized)
+    background_label.config(image=background_photo)
+    background_label.image = background_photo
+
+# Trigger layout update and resize the image
+root.update_idletasks()
+resize_image()
+
+
+def setup_grid():
+    # Create labels for each coin and position them in a grid
+    for idx, coin in enumerate(crypto_data.coins):
+        # Initialize label for the coin
+        crypto_data.label_labels[coin] = tk.Label(root, text=coin, **label_style)
+        crypto_data.label_labels[coin].grid(row=idx + 3, column=0, padx=10, pady=4, sticky="w")
+
+        # Initialize price, amount, balance, etc., labels
+        crypto_data.price_labels[coin] = tk.Label(root, text="Loading...", **price_style)
+        crypto_data.price_labels[coin].grid(row=idx + 3, column=2, padx=10, pady=4)
+
+        crypto_data.amount_labels[coin] = tk.Label(root, text=f"{crypto_data.holdings[coin]:.1f}", **amount_style)
+        crypto_data.amount_labels[coin].grid(row=idx + 3, column=12, padx=10, pady=4)
+
+        crypto_data.balance_labels[coin] = tk.Label(root, text="0", **balance_style)
+        crypto_data.balance_labels[coin].grid(row=idx + 3, column=6, padx=10, pady=4)
+
+        crypto_data.invested_labels[coin] = tk.Label(root, text=f"${crypto_data.invested[coin]:,.2f}", **invested_style)
+        crypto_data.invested_labels[coin].grid(row=idx + 3, column=8, padx=10, pady=4)
+
+        crypto_data.profit_labels[coin] = tk.Label(root, text="0", **profit_style)
+        crypto_data.profit_labels[coin].grid(row=idx + 3, column=10, padx=10, pady=4)
+
+        crypto_data.break_even_labels[coin] = tk.Label(root, text="0", **break_even_style)
+        crypto_data.break_even_labels[coin].grid(row=idx + 3, column=4, padx=10, pady=4)
+
+        crypto_data.icon_labels[coin] = tk.Label(root)
+        crypto_data.icon_labels[coin].grid(row=idx + 3, column=1, padx=10, pady=4)
+
+        # Initialize wallet label unconditionally (along with the other labels)
+        wallet_name = crypto_data.wallet_mapping.get(coin, "NA")
+        crypto_data.wallet_labels[coin] = tk.Label(root, text=wallet_name, font=("Arial", 16, "bold"), fg="black", bg="red")
+        crypto_data.wallet_labels[coin].grid(row=idx + 3, column=18, padx=10, pady=4)
+
+        # Adjust the coin name to match the lowercase icon filename
+        coin_name = crypto_data.coin_id_map.get(coin, coin).lower()
+        icon_path = f"C:/Users/lette/PycharmProjects/IndoVault/coin_icons/{coin_name}.png"
+
+        try:
+            img = Image.open(icon_path)
+            img = img.resize((30, 30))  # Resize to fit the label
+            photo = ImageTk.PhotoImage(img)
+            crypto_data.icon_labels[coin].config(image=photo)
+            crypto_data.icon_labels[coin].image = photo  # Keep a reference to avoid garbage collection
+        except Exception as e:
+            print(f"Icon not found for {coin}, skipping icon. Error: {e}")
+
+        # Update the wallet label based on the wallet group color
+        update_wallet_label_for_coin(coin)  # This will update the color and text for each wallet label
+
 # Flag to check if CoinGecko prices have been fetched
 coin_gecko_prices_fetched = False
 
@@ -129,7 +206,7 @@ def get_price(coin, retries=7):
         if 'price' in response_data:
             price = str(float(response_data["price"]))
             if price != "0":  # If price is valid, update the label
-                brightened_color = brighten_color("#008000", factor=2.5)  # Brighten the green color
+                brightened_color = functions.brighten_color("#008000", factor=2.5)
                 crypto_data.price_labels[coin].config(text=f"${price}", fg=brightened_color)
                 update_balance_for_coin(coin, price)  # Update balance after price
                 update_profit_for_coin(coin, price)  # Update profit after price
@@ -145,13 +222,11 @@ def get_price(coin, retries=7):
 def update_prices(idx=0):
     if idx >= len(crypto_data.coins):
         if not sorted_once:
-            # Directly call sort_prices without lambda
             functions.sort_prices(
                 prices_dict, functions.load_and_update_icon, update_wallet_label_for_coin,
                 update_net_value, root, label_style
             )
-
-        root.after(300000, update_prices)  # Ensure it keeps updating every minute
+        root.after(300000, update_prices)  # Update prices every 5 minutes
         return
 
     coin = crypto_data.coins[idx]
@@ -160,12 +235,12 @@ def update_prices(idx=0):
     crypto_data.price_labels[coin].config(text="Loading...", fg="red")
 
     root.after(300, update_price_for_coin, coin, price, idx)
-    time.sleep(0.1)  # Add a small delay to spread out the load
+    time.sleep(0.1)  # Small delay to manage load
 
 # Function to update the price for each coin in the GUI (one by one with delay)
 def update_price_for_coin(coin, price, idx):
     # Brighten the green color only for the price label
-    brightened_green = brighten_color(price_style["fg"], factor=2.5)  # Brighten the green color
+    brightened_green = functions.brighten_color(price_style["fg"], factor=2.5)  # Brighten the green color
     crypto_data.price_labels[coin].config(text=f"${price}", fg=brightened_green)  # Apply the brightened color to price
     update_balance_for_coin(coin, price)  # Update balance after price
     update_profit_for_coin(coin, price)  # Update profit after price
@@ -194,12 +269,11 @@ def update_profit_for_coin(coin, price):
     profit = balance - crypto_data.invested[coin]
     # Profit in green if positive, red if negative, bold green if positive
     if profit >= 0:
-        brightened_color = brighten_color("#008000", factor=2.0)  # Brighter green for gain
+        brightened_color = functions.brighten_color("#008000", factor=2.0)  # Brighter green for gain
         crypto_data.profit_labels[coin].config(text=f"${profit:.2f}", fg=brightened_color, font=("Arial", 16, "bold"))
     else:
-        brightened_color = brighten_color("#ff0000", factor=1.5)  # Brighter red for loss
+        brightened_color = functions.brighten_color("#ff0000", factor=1.5)  # Brighter red for loss
         crypto_data.profit_labels[coin].config(text=f"${profit:.2f}", fg=brightened_color, font=("Arial", 16))
-
 
 # Function to calculate break even price
 def calculate_break_even(coin):
@@ -218,10 +292,10 @@ def update_break_even_price_for_coin(coin):
         break_even_price_formatted = f"{break_even_price:.5f}"
 
         if float(current_price) >= break_even_price:
-            brightened_color = brighten_color("#008000", factor=2.5)  # Brighter green
+            brightened_color = functions.brighten_color("#008000", factor=2.5)  # Brighter green
             crypto_data.break_even_labels[coin].config(text=f"${break_even_price_formatted}", fg=brightened_color)
         else:
-            brightened_color = brighten_color("#ff0000", factor=2.5)  # Brighter red
+            brightened_color = functions.brighten_color("#ff0000", factor=2.5)  # Brighter red
             crypto_data.break_even_labels[coin].config(text=f"${break_even_price_formatted}", fg=brightened_color)
 
     else:
@@ -248,7 +322,6 @@ def update_net_value():
     net_value_box.create_text(105, 60, text=f"${actual_net_value:.2f}", font=("Arial", 18, "bold"), fill=text_color,
                               justify="center")
 
-
 # Call the function to fetch prices for the excluded coins when the program starts
 functions.fetch_excluded_coin_prices(prices_dict, root)
 # Ensure column 16 is resizable
@@ -268,94 +341,31 @@ for idx, coin in enumerate(crypto_data.coins):
     crypto_data.wallet_labels[coin].grid_forget()  # Reset grid position
     crypto_data.wallet_labels[coin].grid(row=idx + 3, column=18, padx=10, pady=4)
 
-# Updating wallet label color and group
+
+# Updated wallet label function:
 def update_wallet_label_for_coin(coin):
     wallet_group = crypto_data.wallet_mapping.get(coin, "NA")
-    wallet_color = crypto_data.wallet_group_colors.get(wallet_group, "white")  # Default to white if group is not found
-    crypto_data.wallet_labels[coin].config(text=wallet_group, fg="black", bg=wallet_color)
 
-# Foreground image setup (image will be on top of the grid but transparent)
-image_path = r"C:\Users\lette\PycharmProjects\IndoVault\DSC00188.jpeg"
-image = Image.open(image_path)
+    # Set color based on the group
+    if wallet_group == "NA":
+        color = "gray"  # Default color for "NA"
+    else:
+        color = crypto_data.wallet_group_colors.get(wallet_group, "white")  # Fallback to white for unknown groups
 
-# Convert to RGBA if the image is not in that mode
-if image.mode != "RGBA":
-    image = image.convert("RGBA")
-
-# Create the label to hold the image
-background_label = tk.Label(root)
-background_label.place(x=0, y=0, relwidth=1, relheight=1)
-background_label.lift()
-
-# Resize the image and update the label
-def resize_image():
-    window_width, window_height = root.winfo_width(), root.winfo_height()
-    image_resized = image.resize((window_width, window_height), Image.Resampling.LANCZOS)
-    background_photo = ImageTk.PhotoImage(image_resized)
-    background_label.config(image=background_photo)
-    background_label.image = background_photo
-
-# Trigger layout update and resize the image
-root.update_idletasks()
-resize_image()
-
-# Create labels for each coin and position them in a grid
-for idx, coin in enumerate(crypto_data.coins):
-    # Initialize label for the coin
-    crypto_data.label_labels[coin] = tk.Label(root, text=coin, **label_style)
-    crypto_data.label_labels[coin].grid(row=idx + 3, column=0, padx=10, pady=4, sticky="w")
-
-    # Initialize price, amount, balance, etc., labels
-    crypto_data.price_labels[coin] = tk.Label(root, text="Loading...", **price_style)
-    crypto_data.price_labels[coin].grid(row=idx + 3, column=2, padx=10, pady=4)
-
-    crypto_data.amount_labels[coin] = tk.Label(root, text=f"{crypto_data.holdings[coin]:.1f}", **amount_style)
-    crypto_data.amount_labels[coin].grid(row=idx + 3, column=12, padx=10, pady=4)
-
-    crypto_data.balance_labels[coin] = tk.Label(root, text="0", **balance_style)
-    crypto_data.balance_labels[coin].grid(row=idx + 3, column=6, padx=10, pady=4)
-
-    crypto_data.invested_labels[coin] = tk.Label(root, text=f"${crypto_data.invested[coin]:,.2f}", **invested_style)
-    crypto_data.invested_labels[coin].grid(row=idx + 3, column=8, padx=10, pady=4)
-
-    crypto_data.profit_labels[coin] = tk.Label(root, text="0", **profit_style)
-    crypto_data.profit_labels[coin].grid(row=idx + 3, column=10, padx=10, pady=4)
-
-    crypto_data.break_even_labels[coin] = tk.Label(root, text="0", **break_even_style)
-    crypto_data.break_even_labels[coin].grid(row=idx + 3, column=4, padx=10, pady=4)
-
-    crypto_data.icon_labels[coin] = tk.Label(root)
-    crypto_data.icon_labels[coin].grid(row=idx + 3, column=1, padx=10, pady=4)
-
-    # Initialize wallet label unconditionally (along with the other labels)
-    wallet_name = crypto_data.wallet_mapping.get(coin, "NA")
-    crypto_data.wallet_labels[coin] = tk.Label(root, text=wallet_name, font=("Arial", 16, "bold"), fg="black", bg="red")
-    crypto_data.wallet_labels[coin].grid(row=idx + 3, column=18, padx=10, pady=4)
-
-
-    # Adjust the coin name to match the lowercase icon filename
-    coin_name = crypto_data.coin_id_map.get(coin, coin).lower()
-    icon_path = f"C:/Users/lette/PycharmProjects/IndoVault/coin_icons/{coin_name}.png"
-
-    try:
-        img = Image.open(icon_path)
-        img = img.resize((30, 30))  # Resize to fit the label
-        photo = ImageTk.PhotoImage(img)
-        crypto_data.icon_labels[coin].config(image=photo)
-        crypto_data.icon_labels[coin].image = photo  # Keep a reference to avoid garbage collection
-    except Exception as e:
-        print(f"Icon not found for {coin}, skipping icon. Error: {e}")
-
-    # Update the wallet label based on the wallet group color
-    update_wallet_label_for_coin(coin)  # This will update the color and text for each wallet label
+    # Update wallet label text and color
+    crypto_data.wallet_labels[coin].config(fg="black", bg=color, text=f"{wallet_group} Wallet")
 
 # Call the function to create the boxes
 create_value_boxes()
 # Call the header creation function
 create_headers()
+# Call the function to set up the grid with coin labels and other elements
+setup_grid()
 # Start the price updates and layout adjustments
 update_prices()
 # Call the function to set up the exit button
 setup_exit_button()
+# Call the resize image function to make sure background is resized based on window size
+resize_image()
 
 root.mainloop()
