@@ -1,9 +1,10 @@
 # Standard Library Imports
 import time
 import requests
-# Third-Party Imports
+import os
 import tkinter as tk
 from PIL import Image, ImageTk
+
 # Local Imports
 import crypto_data
 import functions
@@ -32,7 +33,131 @@ invested_style["fg"] = functions.brighten_color(invested_style["fg"], factor=2.5
 profit_style["fg"] = functions.brighten_color(profit_style["fg"], factor=2.0)  # Brighter green
 break_even_style["fg"] = functions.brighten_color(break_even_style["fg"], factor=1.5)
 
-# Create headers after root setup to ensure proper display
+# Global state variables
+is_locked = False  # Start with the field unlocked by default
+DEPOSIT_FILE = "deposited_value.txt"
+deposited_value = tk.StringVar(value="0")  # Default to 0
+net_value_box = None  # Initialize as None, so we know it hasn't been created yet
+
+# The actual function that creates the net value box
+def create_net_value_box():
+    global net_value_box  # Declare the global variable here
+    print("Creating net value box...")
+
+    # Prevent re-creating the net value box if it already exists
+    if net_value_box:
+        return  # Exit if net_value_box already exists
+
+    # Create the canvas for the net value display
+    net_value_box = tk.Canvas(root, width=220, height=90, bg="black", bd=0, highlightthickness=2, highlightbackground="red")
+    net_value_box.create_oval(10, 10, 210, 80, fill="darkblue", outline="darkblue", width=0)  # Oval dimensions
+    net_value_box.create_text(110, 30, text="NET VALUE", font=("Arial", 14, "bold"), fill="white", justify="center")
+    net_value_box.create_text(110, 60, text="$0.00", font=("Arial", 18, "bold"), fill="green", justify="center")
+
+    # Place the net value box in the grid
+    net_value_box.grid(row=len(crypto_data.coins) + 3, column=0, columnspan=5, pady=20)
+
+# Function that introduces the delay
+def delayed_create_net_value_box():
+    print("Creating net value box...")  # Debugging line
+    create_net_value_box()
+
+# Delay the creation of the net value box by 100ms to ensure window is ready
+root.after(100, delayed_create_net_value_box)
+
+
+# Function to save the deposited value to a file
+def save_deposited_value(value):
+    with open(DEPOSIT_FILE, "w") as file:
+        file.write(value)
+
+# Improved load_deposited_value with error handling
+def load_deposited_value():
+    try:
+        if os.path.exists(DEPOSIT_FILE):
+            with open(DEPOSIT_FILE, "r") as file:
+                return file.read().strip()  # Remove any extra spaces or newlines
+    except Exception as e:
+        print(f"Error loading deposited value: {e}")
+    return "0"  # Default value if no file exists or an error occurs
+
+# Function to handle "Enter" key press (finalize value entry)
+def on_enter(event, deposited_value, deposited_entry):
+    global is_locked
+
+    # Save the deposited value to file
+    save_deposited_value(deposited_value.get())
+
+    # Lock the field after pressing Enter
+    deposited_entry.config(state="disabled", fg="white", bg="darkblue", insertbackground="white")
+    is_locked = True  # Lock the entry field
+
+# Function to handle FocusIn (clear content if unlocked)
+def focus_in(event=None, deposited_value=None, deposited_entry=None):
+    if not is_locked:
+        deposited_value.set("")  # Clear the content on click
+        deposited_entry.select_range(0, tk.END)
+
+# Function to handle FocusOut (reset to saved value if unlocked)
+def focus_out(event=None, deposited_value=None):
+    if not is_locked:
+        deposited_value.set(load_deposited_value())  # Reset to the saved value when focus is lost
+
+# Function to handle clicking outside (reset value if unlocked)
+def on_click_outside(event, deposited_entry, deposited_value):
+    if not is_locked:
+        if deposited_entry.winfo_containing(event.x_root, event.y_root) != deposited_entry:
+            root.focus_set()
+            deposited_value.set(load_deposited_value())  # Reset to the saved value (if any)
+
+
+# Function to create headers
+# Create the deposited box (Canvas) and Entry widget
+
+def create_value_boxes():
+    global deposited_value, deposited_entry, deposited_box # Access global variables
+
+    # Load the deposited value from the file at the start
+    deposited_value.set(load_deposited_value())  # Load from file, default to "0"
+
+    # Create deposited_box (Canvas) for the deposited value input
+    deposited_box = tk.Canvas(root, width=220, height=90, bg="black", bd=0, highlightthickness=2, highlightbackground="red")  # Red border
+    deposited_box.create_rectangle(0, 0, 220, 90, fill="black", outline="black", width=0)  # Black background
+    deposited_box.create_oval(10, 10, 210, 80, fill="darkblue", outline="darkblue", width=0)  # Oval on top
+    deposited_box.create_text(110, 30, text="DEPOSITED", font=("Arial", 14, "bold"), fill="white", justify="center")
+    deposited_box.create_text(30, 60, text="$", font=("Arial", 18, "bold"), fill="red", anchor="w")
+
+    # Create the Entry widget for user input
+    deposited_entry = tk.Entry(root, textvariable=deposited_value, font=("Arial", 18, "bold"), fg="red", justify="left",
+                               bd=0, bg="darkblue", insertbackground="white", width=9)
+
+    # Ensure dollar sign in the input (validation function)
+    def ensure_dollar_sign(p):
+        if p == "" or p == "0":
+            deposited_value.set("0")
+        elif p.isdigit():
+            return True
+        return False
+
+    deposited_entry.config(validate="key", validatecommand=(root.register(ensure_dollar_sign), "%P"))
+
+    # Bind events for focus and clicking outside
+    deposited_entry.bind("<FocusIn>", lambda event: focus_in(event, deposited_value, deposited_entry))
+    deposited_entry.bind("<FocusOut>", lambda event: focus_out(event, deposited_value))
+
+    # Bind "Enter" key to update the value and lock the field
+    deposited_entry.bind("<Return>", lambda event: on_enter(event, deposited_value, deposited_entry))
+
+    # Add Entry widget inside the Canvas
+    deposited_box.create_window(110, 60, window=deposited_entry)
+
+    # Remove padx from deposited_box to align it similarly to net_value_box
+    deposited_box.grid(row=len(crypto_data.coins) + 3, column=11, columnspan=2, pady=20)
+
+    # Bind click event to root window to handle clicking outside (without saving)
+    root.bind("<Button-1>", lambda event: on_click_outside(event, deposited_entry, deposited_value))
+
+
 def create_headers():
     header_coins = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
     header_coins.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
@@ -47,7 +172,7 @@ def create_headers():
     header_holdings = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
     header_holdings.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
     header_holdings.create_text(100, 30, text="HOLDINGS", **header_style)
-    header_holdings.grid(row=2, column=12, padx=10, pady=(10, 5))  # Swap columns (12 -> 4)
+    header_holdings.grid(row=2, column=12, padx=10, pady=(10, 5))
 
     header_balance = tk.Canvas(root, width=200, height=60, bg="black", bd=0, highlightthickness=0)
     header_balance.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
@@ -73,27 +198,6 @@ def create_headers():
     header_wallet.create_oval(5, 5, 195, 55, fill="blue", outline="blue", width=0)
     header_wallet.create_text(100, 30, text="WALLET", **header_style)
     header_wallet.grid(row=2, column=18, padx=10, pady=(10, 5), sticky="e")
-
-# Initialize the net_value_box globally
-net_value_box = None
-
-# Function to create value boxes
-def create_value_boxes():
-    global net_value_box
-
-    # Create net_value_box
-    net_value_box = tk.Canvas(root, width=220, height=90, bg="black", bd=0, highlightthickness=0)
-    net_value_box.create_oval(10, 10, 210, 80, fill="darkblue", outline="darkblue", width=0)
-    net_value_box.create_text(110, 30, text="NET VALUE", font=("Arial", 14, "bold"), fill="white", justify="center")
-    net_value_box.create_text(110, 60, text="$0.00", font=("Arial", 18, "bold"), fill="green", justify="center")
-    net_value_box.grid(row=len(crypto_data.coins) + 3, column=0, columnspan=5, pady=20)
-
-    # Create deposited_box
-    deposited_box = tk.Canvas(root, width=220, height=90, bg="black", bd=0, highlightthickness=0)
-    deposited_box.create_oval(10, 10, 210, 80, fill="darkblue", outline="darkblue", width=0)
-    deposited_box.create_text(110, 30, text="DEPOSITED", font=("Arial", 14, "bold"), fill="white", justify="center")
-    deposited_box.create_text(110, 60, text="$9160", font=("Arial", 18, "bold"), fill="red", justify="center")
-    deposited_box.grid(row=len(crypto_data.coins) + 3, column=12, columnspan=2, padx=10, pady=20)
 
 # Function to set up the exit button
 def setup_exit_button():
@@ -304,8 +408,9 @@ def update_break_even_price_for_coin(coin):
         crypto_data.break_even_labels[coin].config(text=f"${break_even_price_formatted}",
                                        fg="yellow")  # Default color (yellow) if price is not available
 
-# Update the net value box
 def update_net_value():
+    global net_value_box
+    print("Updating net value...")  # Debugging line
     total_net_value = 0
     for coin, holdings_amount in crypto_data.holdings.items():
         price = prices_dict.get(coin, 0)
@@ -315,12 +420,14 @@ def update_net_value():
     invested_amount = 9600
     actual_net_value = total_net_value - invested_amount
     text_color = "#32CD32" if actual_net_value >= 0 else "#FF4500"
-    # Clear the existing text and redraw the oval
+
+    print(f"Total Net Value: {actual_net_value}")  # Debugging line
+
+    # Clear and redraw the canvas
     net_value_box.delete("all")
     net_value_box.create_oval(10, 10, 200, 80, fill="darkblue", outline="darkblue", width=0)
     net_value_box.create_text(105, 30, text="NET VALUE", font=("Arial", 14, "bold"), fill="white", justify="center")
-    net_value_box.create_text(105, 60, text=f"${actual_net_value:.2f}", font=("Arial", 18, "bold"), fill=text_color,
-                              justify="center")
+    net_value_box.create_text(105, 60, text=f"${actual_net_value:.2f}", font=("Arial", 18, "bold"), fill=text_color, justify="center")
 
 # Call the function to fetch prices for the excluded coins when the program starts
 functions.fetch_excluded_coin_prices(prices_dict, root)
@@ -340,7 +447,6 @@ for idx, coin in enumerate(crypto_data.coins):
 
     crypto_data.wallet_labels[coin].grid_forget()  # Reset grid position
     crypto_data.wallet_labels[coin].grid(row=idx + 3, column=18, padx=10, pady=4)
-
 
 # Updated wallet label function:
 def update_wallet_label_for_coin(coin):
