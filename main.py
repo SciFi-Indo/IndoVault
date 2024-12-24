@@ -1,10 +1,9 @@
 # Standard Library Imports
-import time
 import requests
 import os
 import tkinter as tk
 from PIL import Image, ImageTk
-
+import threading
 # Local Imports
 import crypto_data
 import functions
@@ -324,22 +323,25 @@ def get_price(coin, retries=7):
 
 # Function to update the price for each coin in the GUI (one by one with delay)
 def update_prices(idx=0):
-    if idx >= len(crypto_data.coins):
-        if not sorted_once:
-            functions.sort_prices(
-                prices_dict, functions.load_and_update_icon, update_wallet_label_for_coin,
-                update_net_value, root, label_style
-            )
-        root.after(300000, update_prices)  # Update prices every 5 minutes
-        return
+    def worker(idx):
+        if idx >= len(crypto_data.coins):
+            if not sorted_once:
+                functions.sort_prices(
+                    prices_dict, functions.load_and_update_icon, update_wallet_label_for_coin,
+                    update_net_value, root, label_style
+                )
+            root.after(300000, update_prices)  # Update prices every 5 minutes
+            return
 
-    coin = crypto_data.coins[idx]
-    price = get_price(coin)
-    prices_dict[coin] = price
-    crypto_data.price_labels[coin].config(text="Loading...", fg="red")
+        coin = crypto_data.coins[idx]
+        price = get_price(coin)
+        prices_dict[coin] = price
+        crypto_data.price_labels[coin].config(text="Loading...", fg="red")
 
-    root.after(300, update_price_for_coin, coin, price, idx)
-    time.sleep(0.1)  # Small delay to manage load
+        root.after(5, update_price_for_coin, coin, price, idx)  # 5ms delay to update the UI
+
+    thread = threading.Thread(target=worker, args=(idx,))
+    thread.start()
 
 # Function to update the price for each coin in the GUI (one by one with delay)
 def update_price_for_coin(coin, price, idx):

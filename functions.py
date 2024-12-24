@@ -4,6 +4,7 @@ import crypto_data
 from PIL import Image, ImageTk
 import tkinter as tk
 import requests
+import threading
 
 def brighten_color(hex_color, factor=1.5):
     """Brighten the color by multiplying the RGB components."""
@@ -38,10 +39,17 @@ def sort_prices(prices_dict, update_wallet_label_for_coin, update_icon_for_coin,
     global sorted_once
     sorted_once = True
 
-    sorted_coins = sort_coins_by_balance(prices_dict)
-    hide_labels()
-    regrid_labels(sorted_coins, prices_dict, update_wallet_label_for_coin, update_icon_for_coin)
-    update_net_value()
+    # Function that runs the sorting logic
+    def sort_worker():
+        sorted_coins = sort_coins_by_balance(prices_dict)
+
+        # Schedule GUI updates to run on the main thread
+        root.after(0, hide_labels)  # Ensures hide_labels runs on the main thread
+        root.after(0, regrid_labels, sorted_coins, prices_dict, update_wallet_label_for_coin, update_icon_for_coin)
+        root.after(0, update_net_value)  # Scheduling update_net_value to run in the main thread
+
+    # Start the sorting logic in a background thread
+    threading.Thread(target=sort_worker).start()
 
 def sort_coins_by_balance(prices_dict):
 
