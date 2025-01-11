@@ -8,3 +8,4 @@ __pycache__/
 # Ignore media files (optional, if you don't want to track them)
 *.jpeg
 *.jpg
+!DSC00188.jpeg
