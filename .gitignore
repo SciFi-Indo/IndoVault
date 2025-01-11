@@ -5,7 +5,5 @@ __pycache__/
 # Ignore IDE configurations (for PyCharm)
 .idea/
 
-# Ignore media files (optional, if you don't want to track them)
-*.jpeg
-*.jpg
-!DSC00188.jpeg
+# Ignore the text file where invested amount is stored (since it's user-specific)
+deposited_value.txt
