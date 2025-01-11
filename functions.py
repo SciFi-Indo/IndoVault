@@ -20,27 +20,22 @@ def brighten_color(hex_color, factor=1.5):
 
     return f'#{r:02x}{g:02x}{b:02x}'
 
+
 def fetch_excluded_coin_prices(prices_dict, root):
     for excluded_coin_name in crypto_data.excluded_coins:
         coin_id = crypto_data.coin_id_map.get(f"{excluded_coin_name}USDT", "")
         if coin_id:
             try:
-                response = requests.get(f"{crypto_data.COINGECKO_API_URL}{coin_id}", timeout=10)  # Add timeout
+                response = requests.get(f"{crypto_data.COINGECKO_API_URL}{coin_id}", timeout=10)
                 response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
                 coin_data = response.json()
                 if 'market_data' in coin_data and 'current_price' in coin_data['market_data']:
                     price = coin_data['market_data']['current_price']['usd']
                     prices_dict[f"{excluded_coin_name}USDT"] = str(price)
-            except requests.exceptions.HTTPError as http_err:
-                print(f"HTTP error occurred: {http_err} for coin {excluded_coin_name}")
-            except requests.exceptions.ConnectionError as conn_err:
-                print(f"Connection error occurred: {conn_err} for coin {excluded_coin_name}")
-            except requests.exceptions.Timeout as timeout_err:
-                print(f"Timeout error occurred: {timeout_err} for coin {excluded_coin_name}")
-            except ValueError as json_err:
-                print(f"JSON decoding error: {json_err} for coin {excluded_coin_name}")
-            except Exception as e:
-                print(f"An unexpected error occurred: {e} for coin {excluded_coin_name}")
+            except (requests.exceptions.HTTPError,
+                    requests.exceptions.ConnectionError,
+                    requests.exceptions.Timeout):
+                pass  # Handle known errors silently (optional)
 
     # Schedule the function to run again after 15 minutes (900,000 ms)
     root.after(900000, fetch_excluded_coin_prices, prices_dict, root)
@@ -82,17 +77,18 @@ def hide_labels():
         crypto_data.break_even_labels[coin].grid_forget()
         crypto_data.icon_labels[coin].grid_forget()
 
-def regrid_labels(sorted_coins, prices_dict, update_wallet_label_for_coin, update_icon_for_coin):
 
+def regrid_labels(sorted_coins, prices_dict, update_wallet_label_for_coin, update_icon_for_coin):
     for idx, (coin, _) in enumerate(sorted_coins):
         price = prices_dict.get(coin, None)
         # Handle price not found case
         balance = 0 if price is None else crypto_data.holdings[coin] * float(price)
-        profit = balance - crypto_data.invested[coin]
+        _ = balance - crypto_data.invested[coin]  # Calculate profit, but don't use it
         row_idx = idx + 3  # Adjust row index for proper placement
         # Update icon and wallet labels
         update_icon_for_coin(coin)
         update_wallet_label_for_coin(coin)
+
         # Re-grid the labels
         grid_labels_for_coin(coin, row_idx)
 
