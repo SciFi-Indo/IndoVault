@@ -2,9 +2,10 @@
 import os
 import crypto_data
 from PIL import Image, ImageTk
-import tkinter as tk
 import requests
 import threading
+
+sorted_once = False
 
 def brighten_color(hex_color, factor=1.5):
     """Brighten the color by multiplying the RGB components."""
@@ -24,31 +25,36 @@ def fetch_excluded_coin_prices(prices_dict, root):
         coin_id = crypto_data.coin_id_map.get(f"{excluded_coin_name}USDT", "")
         if coin_id:
             try:
-                response = requests.get(f"{crypto_data.COINGECKO_API_URL}{coin_id}")
+                response = requests.get(f"{crypto_data.COINGECKO_API_URL}{coin_id}", timeout=10)  # Add timeout
+                response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
                 coin_data = response.json()
                 if 'market_data' in coin_data and 'current_price' in coin_data['market_data']:
                     price = coin_data['market_data']['current_price']['usd']
                     prices_dict[f"{excluded_coin_name}USDT"] = str(price)
+            except requests.exceptions.HTTPError as http_err:
+                print(f"HTTP error occurred: {http_err} for coin {excluded_coin_name}")
+            except requests.exceptions.ConnectionError as conn_err:
+                print(f"Connection error occurred: {conn_err} for coin {excluded_coin_name}")
+            except requests.exceptions.Timeout as timeout_err:
+                print(f"Timeout error occurred: {timeout_err} for coin {excluded_coin_name}")
+            except ValueError as json_err:
+                print(f"JSON decoding error: {json_err} for coin {excluded_coin_name}")
             except Exception as e:
-                continue
+                print(f"An unexpected error occurred: {e} for coin {excluded_coin_name}")
 
+    # Schedule the function to run again after 15 minutes (900,000 ms)
     root.after(900000, fetch_excluded_coin_prices, prices_dict, root)
 
-def sort_prices(prices_dict, update_wallet_label_for_coin, update_icon_for_coin, update_net_value, root,
-                label_style):
+def sort_prices(prices_dict, update_wallet_label_for_coin, update_icon_for_coin, update_net_value, root):
     global sorted_once
     sorted_once = True
 
-    # Function that runs the sorting logic
     def sort_worker():
         sorted_coins = sort_coins_by_balance(prices_dict)
-
-        # Schedule GUI updates to run on the main thread
-        root.after(0, hide_labels)  # Ensures hide_labels runs on the main thread
+        root.after(0, hide_labels)
         root.after(0, regrid_labels, sorted_coins, prices_dict, update_wallet_label_for_coin, update_icon_for_coin)
-        root.after(0, update_net_value)  # Scheduling update_net_value to run in the main thread
+        root.after(0, update_net_value)
 
-    # Start the sorting logic in a background thread
     threading.Thread(target=sort_worker).start()
 
 def sort_coins_by_balance(prices_dict):
@@ -61,7 +67,6 @@ def sort_coins_by_balance(prices_dict):
         ),
         reverse=True
     )
-
 
 def hide_labels():
 
@@ -76,7 +81,6 @@ def hide_labels():
         crypto_data.profit_labels[coin].grid_forget()
         crypto_data.break_even_labels[coin].grid_forget()
         crypto_data.icon_labels[coin].grid_forget()
-
 
 def regrid_labels(sorted_coins, prices_dict, update_wallet_label_for_coin, update_icon_for_coin):
 
@@ -107,10 +111,12 @@ def grid_labels_for_coin(coin, row_idx):
 # Open the image, resize it, and return the Tkinter-compatible format
 def load_and_update_icon(coin: str):
     coin_name = crypto_data.coin_id_map.get(coin, "default")
-    icon_path = os.path.join("C:\\Users\\lette\\PycharmProjects\\IndoVault\\coin_icons", f"{coin_name}.png")
+    # Using relative path for coin_icons inside assets folder
+    icon_path = os.path.join("assets", "coin_icons", f"{coin_name}.png")
     img = Image.open(icon_path).resize((30, 30))
     icon_tk = ImageTk.PhotoImage(img)
 
     if coin in crypto_data.icon_labels:
         crypto_data.icon_labels[coin].config(image=icon_tk)
         crypto_data.icon_labels[coin].image = icon_tk
+
