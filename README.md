@@ -1,6 +1,6 @@
-# **IndoVault - Cryptocurrency Portfolio crypto_data**
+# **IndoVault - Cryptocurrency Portfolio**
 
-**IndoVault** is a cryptocurrency portfolio crypto_data designed to help users monitor their holdings across multiple wallets.  
+**IndoVault** is a cryptocurrency portfolio application designed to help users monitor their holdings across multiple wallets.  
 The app enables you to track real-time prices and manage your cryptocurrency investments by keeping tabs on net value, profit/loss, and break-even prices.
 
 ---
@@ -53,6 +53,16 @@ Make sure the background image (`DSC00188.jpeg`) is placed inside the `assets` f
 To launch the application, run the following command:
 
 python main.py
+
+---
+
+## **New Files**
+
+### `blank_slate.py`
+A new window to track GMT and GST prices.
+
+### `utils.py`
+A utility file containing helper functions for the project.
 
 ---
 
