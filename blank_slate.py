@@ -22,21 +22,22 @@ def add_hover_effect(button, hover_bg, default_bg):
 def setup_gmt_price_label(root, price):
     global gmt_price_label
     if not gmt_price_label or not gmt_price_label.winfo_exists():
-        gmt_price_label = tk.Label(root, text=f"GMT Price: ${price}", font=("Arial", 32, "bold"),
-                                   bg=BACKGROUND_COLOR, fg=WHITE, padx=20, pady=10, relief="solid", bd=2)
+        gmt_price_label = tk.Label(root, text=f"GMT Price: ${price}", font=("Arial", 52, "bold"),
+                                   bg="#333333", fg="white", padx=20, pady=10, relief="solid", bd=2,
+                                   highlightbackground="black", highlightthickness=1)
     else:
         gmt_price_label.config(text=f"GMT Price: ${price}")
-    gmt_price_label.grid(row=0, column=2, columnspan=3, padx=(0, 10), pady=10)
-
+    gmt_price_label.grid(row=0, column=5, columnspan=3, padx=(0, 10), pady=10)
 
 def setup_gst_price_label(root, price):
     global gst_price_label
     if not gst_price_label or not gst_price_label.winfo_exists():
-        gst_price_label = tk.Label(root, text=f"GST Price: ${price}", font=("Arial", 32, "bold"),
-                                   bg=BACKGROUND_COLOR, fg=WHITE, padx=20, pady=10, relief="solid", bd=2)
+        gst_price_label = tk.Label(root, text=f"GST Price: ${price}", font=("Arial", 52, "bold"),
+                                   bg="#333333", fg="white", padx=20, pady=10, relief="solid", bd=2,
+                                   highlightbackground="black", highlightthickness=1)
     else:
         gst_price_label.config(text=f"GST Price: ${price}")
-    gst_price_label.grid(row=1, column=2, columnspan=3, padx=(0, 10), pady=10)
+    gst_price_label.grid(row=1, column=5, columnspan=3, padx=(0, 10), pady=10)
 
 
 def fetch_gmt_price(root):
@@ -45,13 +46,15 @@ def fetch_gmt_price(root):
         return
     fetch_in_progress = True
     try:
-        response = requests.get("https://api.binance.com/api/v3/ticker/price", params={"symbol": "GMTUSDT"})
+        url = "https://api.binance.com/api/v3/ticker/price"
+        params = {"symbol": "GMTUSDT"}
+        response = requests.get(url, params=params)
         response.raise_for_status()
         price = response.json().get("price")
         if price is not None:
             update_gmt_price_on_ui(price, root)
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching GMT price: {e}")
+    except requests.exceptions.RequestException:
+        print("GMT price fetch failed")  # Simplified error message
     finally:
         fetch_in_progress = False
         root.after(10000, fetch_gmt_price, root)
@@ -63,13 +66,15 @@ def fetch_gst_price(root):
         return
     fetch_in_progress = True
     try:
-        response = requests.get("https://api.coingecko.com/api/v3/simple/price", params={"ids": "green-satoshi-token", "vs_currencies": "usd"})
+        url = "https://api.coingecko.com/api/v3/simple/price"
+        params = {"ids": "green-satoshi-token", "vs_currencies": "usd"}
+        response = requests.get(url, params=params)
         response.raise_for_status()
         price = response.json().get("green-satoshi-token", {}).get("usd")
         if price is not None:
             update_gst_price_on_ui(price, root)
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching GST price: {e}")
+    except requests.exceptions.RequestException:
+        print("GST price fetch failed")  # Simpler error message
     finally:
         fetch_in_progress = False
         root.after(30000, fetch_gst_price, root)
@@ -103,6 +108,11 @@ def update_gst_price_on_ui(price, root):
     truncated_price = f"{float(price):.4f}"
     gst_price_label.config(text=f"GST Price: ${truncated_price}")
     root.gst_price = float(price)
+
+    # Enable the submit button once GST price is available
+    submit_button = next((w for w in root.winfo_children() if isinstance(w, tk.Button) and w.cget("text") == "Submit"), None)
+    if submit_button:
+        submit_button.config(state=tk.NORMAL)
 
 
 def setup_blank_slate_button(root, create_value_boxes, create_net_value_box, update_prices, get_price):
@@ -149,27 +159,57 @@ def create_indovault_button(root, create_value_boxes, create_net_value_box, upda
                      bg=bg_color, bd=2, relief="solid", height=2,
                      command=lambda: on_indovault_box_click(root, create_value_boxes, create_net_value_box, update_prices, get_price))
 
-    box1.grid(row=2, column=2, columnspan=3, padx=10, pady=10)
+    box1.grid(row=4, column=5, columnspan=3, padx=10, pady=10)
     add_hover_effect(box1, HOVER_COLOR_RED, BUTTON_BG)
 
 
 def create_input_entry_widget(root):
-    # Create an entry widget
-    entry_label = tk.Label(root, text="Enter your value:", font=("Arial", 16), bg=BACKGROUND_COLOR, fg=WHITE)
-    entry_label.grid(row=3, column=2, sticky="E")
+    entry_label = tk.Label(root, text="Enter GST amount:", font=("Arial", 16), bg=BACKGROUND_COLOR, fg=WHITE)
+    entry_label.grid(row=3, column=5, sticky="e")
 
-    entry_widget = tk.Entry(root, font=("Arial", 16), width=10)
-    entry_widget.grid(row=3, column=2, padx=(0, 100), sticky="E")
+    entry_widget = tk.Entry(root, font=("Arial", 16), width=20)
+    entry_widget.grid(row=3, column=6)
 
-    def on_click():
-        user_input = entry_widget.get()
-        print(f"User input: {user_input}")
-        # Add logic for handling the input here
+    entry_widget.focus_set()
 
-    # Create a button to submit the input
-    submit_button = tk.Button(root, text="Submit", command=on_click, font=("Arial", 16), bg=BUTTON_BG, fg=BUTTON_FG)
+    # Result label with slightly darker green background
+    global result_label
+    result_label = tk.Label(root, text="Equivalent GMT: --\nEquivalent in USD: --", font=("Arial", 24, "bold"),
+                            bg="#388E3C", fg="white", padx=20, pady=15, relief="solid", bd=2,
+                            highlightbackground="black", highlightthickness=1)
+    result_label.grid(row=2, column=5, columnspan=3, pady=10)
+
+    submit_button = tk.Button(root, text="Submit", command=lambda: on_click(entry_widget, root), font=("Arial", 16), bg=BUTTON_BG, fg=BUTTON_FG)
     add_hover_effect(submit_button, HOVER_COLOR_RED, BUTTON_BG)
-    submit_button.grid(row=3, column=2, padx=(100, 200), sticky="E")
+    submit_button.grid(row=3, column=7, sticky="w")
+
+    # Disable the submit button initially if GST price is None
+    submit_button.config(state=tk.DISABLED)
+
+    def refocus_entry(event):
+        entry_widget.focus_set()
+
+    entry_widget.bind("<FocusIn>", refocus_entry)
+
+
+def on_click(entry_widget, root):
+    user_input = entry_widget.get()
+    try:
+        gst_amount = float(user_input)
+
+        gst_price = root.gst_price
+        gmt_price = root.gmt_price
+
+        if gst_price is None or gmt_price is None:
+            print("Error: Prices are not available.")
+            return
+
+        gmt_value = (gst_amount * gst_price) / gmt_price
+
+        result_label.config(text=f"Equivalent GMT: {gmt_value:.4f} GMT\nEquivalent in USD: ${(gmt_value * gmt_price):.2f}")
+
+    except ValueError:
+        print("Invalid input, please enter a valid number.")
 
 
 def rebuild_indovault(root, create_value_boxes, create_net_value_box, update_prices, get_price):
@@ -249,14 +289,14 @@ def setup_exit_buttonGMT(root):
     exit_button = tk.Button(root, text="Exit", command=root.quit, font=("Arial", 24, "bold"),
                             bg=RED, fg=WHITE, relief="solid", width=10, height=1)
     add_hover_effect(exit_button, DARK_RED, RED)
-    exit_button.grid(row=4, column=2, columnspan=3, pady=5, padx=10)
+    exit_button.grid(row=5, column=5, columnspan=3, pady=5, padx=10)
 
 
 def configure_grid_layout(root):
-    for i in range(5):  # Loop to configure columns 0 to 4
+    for i in range(11):  # Loop to configure columns 0 to 4
         root.grid_columnconfigure(i, weight=1)
 
-    for i in range(5):  # Loop to configure rows 0 to 4
+    for i in range(6):  # Loop to configure rows 0 to 4
         root.grid_rowconfigure(i, weight=1)
 
 
