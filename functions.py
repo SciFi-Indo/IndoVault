@@ -45,12 +45,16 @@ def sort_prices(prices_dict, update_wallet_label_for_coin, update_icon_for_coin,
     sorted_once = True
 
     def sort_worker():
+        if crypto_data.stop_event.is_set():  # Check if the event is set
+            return  # Stop the sorting worker if stop_event is set
+
         sorted_coins = sort_coins_by_balance(prices_dict)
         root.after(0, hide_labels)
         root.after(0, regrid_labels, sorted_coins, prices_dict, update_wallet_label_for_coin, update_icon_for_coin)
         root.after(0, update_net_value)
 
     threading.Thread(target=sort_worker).start()
+
 
 def sort_coins_by_balance(prices_dict):
 
@@ -81,7 +85,6 @@ def hide_labels():
 def regrid_labels(sorted_coins, prices_dict, update_wallet_label_for_coin, update_icon_for_coin):
     for idx, (coin, _) in enumerate(sorted_coins):
         price = prices_dict.get(coin, None)
-        # Handle price not found case
         balance = 0 if price is None else crypto_data.holdings[coin] * float(price)
         _ = balance - crypto_data.invested[coin]  # Calculate profit, but don't use it
         row_idx = idx + 3  # Adjust row index for proper placement
@@ -91,6 +94,7 @@ def regrid_labels(sorted_coins, prices_dict, update_wallet_label_for_coin, updat
 
         # Re-grid the labels
         grid_labels_for_coin(coin, row_idx)
+
 
 def grid_labels_for_coin(coin, row_idx):
 

@@ -1,8 +1,11 @@
+import threading
 # Labels for each coin (initialized later)
 price_labels, balance_labels, amount_labels = {}, {}, {}
 invested_labels, profit_labels, break_even_labels = {}, {}, {}
 icon_labels, holdings_labels, wallet_labels = {}, {}, {}
 label_labels = {}
+
+stop_event = threading.Event()  # This event will be used to signal threads to stop
 
 # Define the Binance API URL for fetching the price of coins
 BINANCE_API_URL = "https://api.binance.com/api/v3/ticker/price"

@@ -1,6 +1,6 @@
-# **IndoVault - Cryptocurrency Portfolio Tracker**
+# **IndoVault - Cryptocurrency Portfolio crypto_data**
 
-**IndoVault** is a cryptocurrency portfolio tracker designed to help users monitor their holdings across multiple wallets.  
+**IndoVault** is a cryptocurrency portfolio crypto_data designed to help users monitor their holdings across multiple wallets.  
 The app enables you to track real-time prices and manage your cryptocurrency investments by keeping tabs on net value, profit/loss, and break-even prices.
 
 ---
