@@ -1,28 +1,27 @@
 import threading
-# Labels for each coin (initialized later)
+
 price_labels, balance_labels, amount_labels = {}, {}, {}
 invested_labels, profit_labels, break_even_labels = {}, {}, {}
 icon_labels, holdings_labels, wallet_labels = {}, {}, {}
 label_labels = {}
 
-stop_event = threading.Event()  # This event will be used to signal threads to stop
+stop_event = threading.Event()
+active_threads = []
 
-# Define the Binance API URL for fetching the price of coins
 BINANCE_API_URL = "https://api.binance.com/api/v3/ticker/price"
 COINGECKO_API_URL = "https://api.coingecko.com/api/v3/coins/"
+
 excluded_coins = ["ETI", "EGAZ", "HEX"]
 
 coins = [
-    "ETIUSDT", "EGAZUSDT", "HEXUSDT", "ETHUSDT", "BTCUSDT", "CFXUSDT",
-    "GALAUSDT", "AMPUSDT", "GLMUSDT", "QTUMUSDT", "ALTUSDT", "XAIUSDT",
-    "XNOUSDT", "CELRUSDT", "PONDUSDT", "AIUSDT", "VETUSDT", "ONTUSDT",
-    "NEOUSDT", "NULSUSDT", "ALGOUSDT", "GRTUSDT", "LTCUSDT", "GASUSDT",
-    "BNBUSDT", "ICPUSDT", "SOLUSDT", "FETUSDT", "NEARUSDT", "HBARUSDT"
+    "ETIUSDT", "EGAZUSDT", "HEXUSDT", "ETHUSDT", "BTCUSDT", "CFXUSDT", "GALAUSDT", "AMPUSDT", "GLMUSDT", "QTUMUSDT",
+    "ALTUSDT", "XAIUSDT", "XNOUSDT", "CELRUSDT", "PONDUSDT", "AIUSDT", "VETUSDT", "ONTUSDT", "NEOUSDT", "NULSUSDT",
+    "ALGOUSDT", "GRTUSDT", "LTCUSDT", "GASUSDT", "BNBUSDT", "ICPUSDT", "SOLUSDT", "FETUSDT", "NEARUSDT", "HBARUSDT"
 ]
 
 wallet_mapping = {
-    **{coin: "TREZOR" for coin in ["ETHUSDT", "AMPUSDT", "FETUSDT", "PONDUSDT", "NEARUSDT", "GRTUSDT",
-                                  "GLMUSDT", "LTCUSDT", "GALAUSDT", "AIUSDT", "ALTUSDT", "BNBUSDT"]},
+    **{coin: "TREZOR" for coin in ["ETHUSDT", "AMPUSDT", "FETUSDT", "PONDUSDT", "NEARUSDT", "GRTUSDT", "GLMUSDT",
+                                  "LTCUSDT", "GALAUSDT", "AIUSDT", "ALTUSDT", "BNBUSDT"]},
     **{coin: "ETICA" for coin in ["ETIUSDT", "EGAZUSDT"]},
     **{coin: "EXODUS" for coin in ["ALGOUSDT", "QTUMUSDT", "HBARUSDT"]},
     "XNOUSDT": "NAUTILUS", "ICPUSDT": "STOICWALLET",
@@ -61,8 +60,6 @@ invested = {
     "SOLUSDT": 13, "GASUSDT": 6.5, "ETHUSDT": 3800, "AMPUSDT": 222, "FETUSDT": 222
 }
 
-# Default invested amount for coins not specified in the invested dictionary
 for coin in coins:
     if coin not in invested:
         invested[coin] = 0
-
